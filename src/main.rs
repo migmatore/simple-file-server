@@ -5,11 +5,12 @@ use fs::{Files, NamedFile};
 use futures_util::{TryStreamExt as _, StreamExt};
 use std::io::Write;
 use std::path::{self, PathBuf};
+use std::string;
 use uuid::Uuid;
 
 async fn get_image(req: HttpRequest) -> std::io::Result<NamedFile> {
-    let path: PathBuf = req.match_info().query("filename").parse().unwrap();
-    Ok(NamedFile::open(path)?)
+    let path: String = req.match_info().query("filename").parse().unwrap();
+    Ok(NamedFile::open(format!("./tmp/{path}"))?)
 }
 
 async fn create_image(mut payload: Multipart) -> Result<HttpResponse, Error> {
@@ -19,7 +20,10 @@ async fn create_image(mut payload: Multipart) -> Result<HttpResponse, Error> {
         let filename = content_disposition
             .get_filename()
             .map_or_else(|| Uuid::new_v4().to_string(), sanitize_filename::sanitize);
-        let filepath = format!("{filename}");
+
+        let file_ext = filename.split(".").collect::<Vec<&str>>();
+
+        let filepath = format!("./tmp/{}.{}", Uuid::new_v4().to_string(), file_ext.last().unwrap().to_string());
 
         let mut f = web::block(|| std::fs::File::create(filepath)).await??;
 
@@ -33,6 +37,9 @@ async fn create_image(mut payload: Multipart) -> Result<HttpResponse, Error> {
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+std::env::set_var("RUST_LOG", "info");
+    std::fs::create_dir_all("./tmp")?;
+
     HttpServer::new(|| {
         App::new()
             .route("/get/{filename:.*}", web::get().to(get_image))
