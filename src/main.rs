@@ -45,7 +45,7 @@ std::env::set_var("RUST_LOG", "info");
             .route("/get/{filename:.*}", web::get().to(get_image))
             .route("/upload", web::post().to(create_image))
     })
-    .bind(("0.0.0.0", 8081))?
+    .bind(("0.0.0.0", 8080))?
     .run()
     .await
 }

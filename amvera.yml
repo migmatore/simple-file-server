@@ -1,0 +1,3 @@
+run:
+  command: /app/target/release/simple-file-server
+  containerPort: 8080
